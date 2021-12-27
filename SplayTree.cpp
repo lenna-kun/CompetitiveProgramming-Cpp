@@ -4,7 +4,7 @@ using namespace std;
 template <class T> struct Node {
   Node<T> *l, *r, *p;
   T key;
-  Node() : l(nullptr), r(nullptr), p(nullptr) {}
+  Node(T key_) : l(nullptr), r(nullptr), p(nullptr), key(key_) {}
   int state() {
     if (p && p->l == this) return -1;
     if (p && p->r == this) return 1;
@@ -80,8 +80,8 @@ template <class T> struct SplayTree {
   pair<Node<T>*, bool> insert(T k) {
     Node<T> *node = lower_bound(k);
     if (node && node->key == k) return {node, false};
-    root = new Node<T>;
-    root->key = k; sz++;
+    root = new Node<T>(k);
+    sz++;
     if (!node) {
       if (sz == 1) {
         beg = root; rbeg = root;
