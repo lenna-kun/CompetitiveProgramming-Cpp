@@ -62,13 +62,9 @@ template <class T> struct Node {
 };
 
 template <class T> struct SplayTree {
-  SplayTree() : root(nullptr), sz(0) {}
-  Node<T> *begin() {
-    if (!root) return root;
-    Node<T> *cur = root;
-    while (cur->l) cur = cur->l;
-    return cur;
-  }
+  SplayTree() : root(nullptr), top(nullptr), sz(0) {}
+  int size() { return sz; }
+  Node<T> *begin() { return top; }
   Node<T>* end() { return nullptr; }
   Node<T>* find(T k) {
     Node<T> *ret = find_(k);
@@ -77,7 +73,6 @@ template <class T> struct SplayTree {
     }
     return ret;
   }
-  int size() { return sz; }
   Node<T>* lower_bound(T k) {
     Node<T> *ret = find_(k);
     if (!ret) return ret;
@@ -95,6 +90,7 @@ template <class T> struct SplayTree {
     if (node && node->key == k) return {node, false};
     root = new Node<T>;
     root->key = k; sz++;
+    if (!top || top->key > k) top = root;
     if (!node) return {root, true};
     Node<T> *tmp;
     if (node->key > k) {
@@ -110,6 +106,7 @@ template <class T> struct SplayTree {
   }
   void erase(Node<T> *node) {
     node->splay();
+    if (top->key == node->key) top = node->r;
     sz--;
     // now root's key is equal to k
     if (!node->l) {
@@ -137,7 +134,7 @@ template <class T> struct SplayTree {
     return true;
   }
 private:
-  Node<T> *root;
+  Node<T> *root, *top;
   int sz;
   Node<T>* find_(T k) {
     if (!root) return nullptr;
