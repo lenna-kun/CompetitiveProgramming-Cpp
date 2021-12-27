@@ -6,14 +6,14 @@ template <class T> struct Node {
   T key;
   Node() : l(nullptr), r(nullptr), p(nullptr) {}
   int state() {
-    if(p && p->l == this) return -1;
-    if(p && p->r == this) return 1;
+    if (p && p->l == this) return -1;
+    if (p && p->r == this) return 1;
     return 0;
   }
   void rotate() {
     Node<T> *par = p;
     Node<T> *mid;
-    if(p->l == this) {
+    if (p->l == this) {
       mid = r; r = par;
       par->l = mid;
     } else {
@@ -28,7 +28,7 @@ template <class T> struct Node {
   void splay() {
     while(state()) {
       int st = state() * p->state();
-      if(st == 0) {
+      if (st == 0) {
         rotate();
       } else if (st == 1) {
         p->rotate();
@@ -62,51 +62,48 @@ template <class T> struct Node {
 };
 
 template <class T> struct SplayTree {
-  SplayTree() : root(nullptr), top(nullptr), sz(0) {}
+  SplayTree() : root(nullptr), beg(nullptr), rbeg(nullptr), sz(0) {}
   int size() { return sz; }
-  Node<T> *begin() { return top; }
+  Node<T> *begin() { return beg; }
+  Node<T> *rbegin() { return rbeg; }
   Node<T>* end() { return nullptr; }
+  Node<T>* rend() { return nullptr; }
+  Node<T>* lower_bound(T k) { return bound(k, true); }
+  Node<T>* upper_bound(T k) { return bound(k, false); }
   Node<T>* find(T k) {
-    Node<T> *ret = search(k);
+    Node<T> *ret = lower_bound(k);
     if (!ret || ret->key != k) {
       return nullptr;
     }
     return ret;
   }
-  Node<T>* lower_bound(T k) {
-    Node<T> *ret = search(k);
-    if (!ret) return ret;
-    if (ret->key < k) ret = ret->next();
-    return ret;
-  }
-  Node<T>* upper_bound(T k) {
-    Node<T> *ret = search(k);
-    if (!ret) return ret;
-    if (ret->key <= k) ret = ret->next();
-    return ret;
-  }
   pair<Node<T>*, bool> insert(T k) {
-    Node<T> *node = search(k);
+    Node<T> *node = lower_bound(k);
     if (node && node->key == k) return {node, false};
     root = new Node<T>;
     root->key = k; sz++;
-    if (!top || top->key > k) top = root;
-    if (!node) return {root, true};
-    Node<T> *tmp;
-    if (node->key > k) {
-      tmp = node->l; node->l = nullptr;
-      root->l = tmp; root->r = node;
-    } else if (node->key < k) {
-      tmp = node->r; node->r = nullptr;
-      root->l = node; root->r = tmp;
+    if (!node) {
+      if (sz == 1) {
+        beg = root; rbeg = root;
+        return {root, true};
+      }
+      node = rbeg;
+      node->splay();
+      root->l = node;
+    } else {
+      // now node->key > k
+      root->l = node->l; root->r = node;
+      node->l = nullptr; node->p = root;
     }
-    node->p = root;
-    if (tmp) tmp->p = root;
+    if (root->l) root->l->p = root;
+    if (beg->key > k) beg = root;
+    if (rbeg->key < k) rbeg = root;
     return {root, true};
   }
   void erase(Node<T> *node) {
     node->splay();
-    if (top->key == node->key) top = node->r;
+    if (beg->key == node->key) beg = node->r;
+    if (rbeg->key == node->key) rbeg = node->l;
     sz--;
     // now root's key is equal to k
     if (!node->l) {
@@ -134,23 +131,22 @@ template <class T> struct SplayTree {
     return true;
   }
 private:
-  Node<T> *root, *top;
+  Node<T> *root, *beg, *rbeg;
   int sz;
-  Node<T>* search(T k) {
-    if (!root) return nullptr;
-    Node<T> *node = root;
-    while (1) {
-      if (node->key == k) break;
-      if (node->key > k) {
-        if (!node->l) break;
-        node = node->l;
+  Node<T>* bound(T k, bool lower) {
+    Node<T> *left = root, *right = nullptr;
+    while (left) {
+      if ((lower && !(k > left->key)) || (!lower && (k < left->key))) {
+        right = left;
+        left = left->l;
       } else {
-        if (!node->r) break;
-        node = node->r;
+        left = left->r;
       }
     }
-    node->splay();
-    root = node;
-    return root;
+    if (right) {
+      right->splay();
+      root = right;
+    }
+    return right;
   }
 };
