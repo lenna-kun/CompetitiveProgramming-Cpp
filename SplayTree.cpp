@@ -67,26 +67,26 @@ template <class T> struct SplayTree {
   Node<T> *begin() { return top; }
   Node<T>* end() { return nullptr; }
   Node<T>* find(T k) {
-    Node<T> *ret = find_(k);
+    Node<T> *ret = search(k);
     if (!ret || ret->key != k) {
       return nullptr;
     }
     return ret;
   }
   Node<T>* lower_bound(T k) {
-    Node<T> *ret = find_(k);
+    Node<T> *ret = search(k);
     if (!ret) return ret;
     if (ret->key < k) ret = ret->next();
     return ret;
   }
   Node<T>* upper_bound(T k) {
-    Node<T> *ret = find_(k);
+    Node<T> *ret = search(k);
     if (!ret) return ret;
     if (ret->key <= k) ret = ret->next();
     return ret;
   }
   pair<Node<T>*, bool> insert(T k) {
-    Node<T> *node = find_(k);
+    Node<T> *node = search(k);
     if (node && node->key == k) return {node, false};
     root = new Node<T>;
     root->key = k; sz++;
@@ -136,7 +136,7 @@ template <class T> struct SplayTree {
 private:
   Node<T> *root, *top;
   int sz;
-  Node<T>* find_(T k) {
+  Node<T>* search(T k) {
     if (!root) return nullptr;
     Node<T> *node = root;
     while (1) {
