@@ -72,9 +72,7 @@ template <class T> struct SplayTree {
   Node<T>* upper_bound(T k) { return bound(k, false); }
   Node<T>* find(T k) {
     Node<T> *ret = lower_bound(k);
-    if (!ret || ret->key != k) {
-      return nullptr;
-    }
+    if (!ret || ret->key != k) return nullptr;
     return ret;
   }
   pair<Node<T>*, bool> insert(T k) {
@@ -83,7 +81,7 @@ template <class T> struct SplayTree {
     root = new Node<T>(k);
     sz++;
     if (!node) {
-      if (sz == 1) {
+      if (!rbeg) {
         beg = root; rbeg = root;
         return {root, true};
       }
@@ -102,8 +100,8 @@ template <class T> struct SplayTree {
   }
   void erase(Node<T> *node) {
     node->splay();
-    if (beg->key == node->key) beg = node->r;
-    if (rbeg->key == node->key) rbeg = node->l;
+    if (beg->key == node->key) beg = node->next();
+    if (rbeg->key == node->key) rbeg = node->pre();
     sz--;
     // now root's key is equal to k
     if (!node->l) {
