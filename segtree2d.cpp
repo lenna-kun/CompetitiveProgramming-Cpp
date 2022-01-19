@@ -5,12 +5,7 @@ using namespace atcoder;
 #define i64 int64_t
 #define endl "\n"
 #define all(a) a.begin(),a.end()
-#define overload(_1,_2,_3,_4,name,...) name
-#define _rep1(n) for(int i = 0; i < (n); i++)
-#define _rep2(i,n) for(int i = 0; i < (n); i++)
-#define _rep3(i,a,b) for(int i = (a); i < (b); i++)
-#define _rep4(i,a,b,c) for(int i = (a); i < (b); i += (c))
-#define rep(...) overload(__VA_ARGS__,_rep4,_rep3,_rep2,_rep1)(__VA_ARGS__)
+#define rep(n) for(int i = 0; i < (n); i++)
 #define rrep(i,a,b) for(int i = (b) - 1; i >= (a); i--)
 
 i64 e() { return 0; }
@@ -19,19 +14,26 @@ i64 op(i64 a, i64 b) { return a + b; }
 template <class S, S (*op)(S, S), S (*e)()> class SegTree2d {
 public:
   void add_point(i64 x, i64 y) {
-    pts[x].push_back(y);
+    pts.push_back({ x, y });
     pt.push_back(x);
   }
   void init() {
     sort(all(pt));
     pt.erase(unique(all(pt)), pt.end());
+    sort(all(pts));
+    pts.erase(unique(all(pts)), pts.end());
 
     int n = pt.size();
     size = 1; while (size < n) size *= 2;
     idx.resize(2*size);
 
-    int i = 0;
-    for (auto &[x, ys]: pts) idx[(i++)+size] = ys;
+    int i = -1;
+    i64 bef = pts[0].first+1;
+    for (pair<i64, i64> &p: pts) {
+      i += p.first != bef;
+      idx[i+size].push_back(p.second);
+      bef = p.first;
+    }
     // pts.clear();
     rrep (i, 1, 2*size) {
       sort(all(idx[i]));
@@ -39,7 +41,7 @@ public:
       for (i64 &j: idx[i]) idx[i / 2].push_back(j);
     }
     st.resize(2*size);
-    rep (i, 1, 2*size) st[i] = segtree<S, op, e>(idx[i].size());
+    rep (2*size-1) st[i+1] = segtree<S, op, e>(idx[i+1].size());
   }
   void set(i64 x, i64 y, S v) { update(x, y, v, true); }
   void add(i64 x, i64 y, S v) { update(x, y, v, false); }
@@ -48,7 +50,7 @@ public:
   }
 private:
   int size;
-  map<i64, vector<i64>> pts;
+  vector<pair<i64, i64>> pts;
   vector<i64> pt;
   vector<segtree<S, op, e>> st;
   vector<vector<i64>> idx;
