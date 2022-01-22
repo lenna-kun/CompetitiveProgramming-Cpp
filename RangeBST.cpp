@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 #define i64 int64_t
+#define endl "\n"
+#define rep(n) for(int i = 0; i < (n); i++)
 
 template <class S, S (*op)(S, S), S (*e)()> struct Node {
   Node<S, op, e> *l, *r, *p;
@@ -75,33 +77,8 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
     if (!ret || ret->pt != x) return e();
     return ret->v;
   }
-  void set(i64 x, S val) {
-    Node<S, op, e> *node = lower_bound(x);
-    if (node && node->pt == x) {
-      node->v = val;
-      node->update();
-      return;
-    }
-    root = new Node<S, op, e>(x, val);
-    sz++;
-    if (!max_node) {
-      max_node = root;
-      return;
-    }
-    if (!node) {
-      max_node->splay();
-      root->l = max_node;
-      max_node = root;
-    } else {
-      // now node->pt > x
-      root->l = node->l; root->r = node;
-      node->l = nullptr; node->p = root;
-      node->update();
-    }
-    root->update();
-    if (root->l) root->l->p = root;
-    return;
-  }
+  void set(i64 x, S val) { set(x, val, false); }
+  void add(i64 x, S val) { set(x, val, true); }
   S prod(i64 xl, i64 xr) {
     assert(xl <= xr);
     if (!lower_bound(xl)) return e();
@@ -119,6 +96,10 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
     if (right) right->splay(), root = right;
     return ret;
   }
+  S prod(i64 xl) {
+    if (!lower_bound(xl)) return e();
+    return op(root->v, root->get_rprod());
+  }
 private:
   Node<S, op, e> *root, *max_node;
   int sz;
@@ -134,14 +115,64 @@ private:
     }
     return right;
   }
+  void set(i64 x, S val, bool add) {
+    Node<S, op, e> *node = nullptr;
+    if (max_node && max_node->pt >= x) node = lower_bound(x);
+    if (node && node->pt == x) {
+      if (add) node->v = op(node->v, val);
+      else node->v = val;
+      node->update();
+      return;
+    }
+    Node<i64, op, e> *nn = new Node<S, op, e>(x, val);
+    sz++;
+    if (!max_node) {
+      max_node = nn;
+      root = nn;
+      return;
+    }
+    if (!node) {
+      nn->l = root;
+      max_node = nn;
+    } else {
+      // now node->pt > x
+      nn->l = node->l; nn->r = node;
+      node->l = nullptr; node->p = nn;
+      node->update();
+    }
+    nn->update();
+    if (nn->l) nn->l->p = nn;
+    root = nn;
+    return;
+  }
 };
 
 i64 op(i64 a, i64 b) { return a + b; }
 i64 e() { return 0; }
-int main() {
+void Main() {
+  int n, q;
+  cin >> n >> q;
+  vector<i64> a(n);
+  for (i64 &e: a) cin >> e;
   RangeBST<i64, op, e> rbst;
-  rbst.set(30, 90);
-  rbst.set(51, 120);
-  rbst.set(44, 10);
-  cout << rbst.prod(40, 52) << endl;
+  rep (n) rbst.set(i, a[i]);
+  rep (q) {
+    int t;
+    cin >> t;
+    if (t == 0) {
+      i64 p, x;
+      cin >> p >> x;
+      rbst.add(p, x);
+    } else {
+      i64 l, r;
+      cin >> l >> r;
+      cout << rbst.prod(l, r) << endl;
+    }
+  }
+}
+int main() {
+  cin.tie(0);
+  ios::sync_with_stdio(false);
+  cout << setprecision(10) << fixed;
+  Main();
 }
