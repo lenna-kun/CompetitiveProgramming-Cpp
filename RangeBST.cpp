@@ -82,9 +82,9 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
   S prod(i64 xl, i64 xr) {
     assert(xl <= xr);
     if (!lower_bound(xl)) return e();
+    if (xr > max_node->pt) return op(root->v, root->get_rprod());
     // now xl is root
     Node<S, op, e> *right = bound(xr, true);
-    if (!right) return op(root->v, root->get_rprod());
     Node<S, op, e> *tmp = right;
     S ret = e();
     for (bool f = true; tmp != root;) {
@@ -95,10 +95,6 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
     }
     if (right) right->splay(), root = right;
     return ret;
-  }
-  S prod(i64 xl) {
-    if (!lower_bound(xl)) return e();
-    return op(root->v, root->get_rprod());
   }
 private:
   Node<S, op, e> *root, *max_node;
