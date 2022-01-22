@@ -62,7 +62,17 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
 private:
   using NC = Node<S, op, e>;
   NC *root, *max_node;
-  int sz;
+  NC *build(int li, int ri, const vector<pair<i64, S>> &v) {
+    if (li >= ri) return nullptr;
+    int mi = (li + ri) >> 1;
+    NC *mid = new NC(v[mi].first, v[mi].second);
+    mid->l = build(li, mi, v);
+    if (mid->l) mid->l->p = mid;
+    mid->r = build(mi+1, ri, v);
+    if (mid->r) mid->r->p = mid;
+    mid->update();
+    return mid;
+  }
   NC* bound(i64 x, bool lower) {
     NC *left = root, *right = nullptr;
     while (left) {
@@ -85,7 +95,6 @@ private:
       return;
     }
     NC *nn = new NC(x, val);
-    sz++;
     if (!max_node) {
       max_node = nn;
       root = nn;
@@ -106,8 +115,12 @@ private:
     return;
   }
 public:
-  RangeBST() : root(nullptr), max_node(nullptr), sz(0) {}
-  int size() { return sz; }
+  RangeBST() : root(nullptr), max_node(nullptr) {}
+  explicit RangeBST(const vector<pair<i64, S>> &v) : RangeBST() {
+    root = build(0, v.size(), v);
+    max_node = root;
+    while (max_node->r) max_node = max_node->r;
+  }
   NC *rbegin() { return max_node; }
   NC* lower_bound(i64 x) {
     NC *ret = bound(x, true);
@@ -145,16 +158,15 @@ public:
   }
 };
 
-// verify: https://judge.yosupo.jp/submission/75434
+// verify: https://judge.yosupo.jp/submission/75441
 i64 op(i64 a, i64 b) { return a + b; }
 i64 e() { return 0; }
 void Main() {
   int n, q;
   cin >> n >> q;
-  vector<i64> a(n);
-  for (i64 &e: a) cin >> e;
-  RangeBST<i64, op, e> rbst;
-  rep (n) rbst.set(i, a[i]);
+  vector<pair<i64, i64>> a(n);
+  rep (n) a[i].first = i, cin >> a[i].second;
+  RangeBST<i64, op, e> rbst(a);
   rep (q) {
     int t;
     cin >> t;
