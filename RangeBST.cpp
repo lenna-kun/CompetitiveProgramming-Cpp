@@ -59,48 +59,12 @@ template <class S, S (*op)(S, S), S (*e)()> struct Node {
 };
 
 template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
-  RangeBST() : root(nullptr), max_node(nullptr), sz(0) {}
-  int size() { return sz; }
-  Node<S, op, e> *rbegin() { return max_node; }
-  Node<S, op, e>* lower_bound(i64 x) {
-    Node<S, op, e> *ret = bound(x, true);
-    if (ret) ret->splay(), root = ret;
-    return ret;
-  }
-  Node<S, op, e>* upper_bound(i64 x) {
-    Node<S, op, e> *ret = bound(x, false);
-    if (ret) ret->splay(), root = ret;
-    return ret;
-  }
-  S get(i64 x) {
-    Node<S, op, e> *ret = lower_bound(x);
-    if (!ret || ret->pt != x) return e();
-    return ret->v;
-  }
-  void set(i64 x, S val) { set(x, val, false); }
-  void add(i64 x, S val) { set(x, val, true); }
-  S prod(i64 xl, i64 xr) {
-    assert(xl <= xr);
-    if (!lower_bound(xl)) return e();
-    if (xr > max_node->pt) return op(root->v, root->get_rprod());
-    // now xl is root
-    Node<S, op, e> *right = bound(xr, true);
-    Node<S, op, e> *tmp = right;
-    S ret = e();
-    for (bool f = true; tmp != root;) {
-      if (f) ret = op(tmp->get_lprod(), ret);
-      f = tmp->state() == 1;
-      if (f) ret = op(tmp->p->v, ret);
-      tmp = tmp->p;
-    }
-    if (right) right->splay(), root = right;
-    return ret;
-  }
 private:
-  Node<S, op, e> *root, *max_node;
+  using NC = Node<S, op, e>;
+  NC *root, *max_node;
   int sz;
-  Node<S, op, e>* bound(i64 x, bool lower) {
-    Node<S, op, e> *left = root, *right = nullptr;
+  NC* bound(i64 x, bool lower) {
+    NC *left = root, *right = nullptr;
     while (left) {
       if ((lower && !(x > left->pt)) || (!lower && (x < left->pt))) {
         right = left;
@@ -112,7 +76,7 @@ private:
     return right;
   }
   void set(i64 x, S val, bool add) {
-    Node<S, op, e> *node = nullptr;
+    NC *node = nullptr;
     if (max_node && max_node->pt >= x) node = lower_bound(x);
     if (node && node->pt == x) {
       if (add) node->v = op(node->v, val);
@@ -120,7 +84,7 @@ private:
       node->update();
       return;
     }
-    Node<i64, op, e> *nn = new Node<S, op, e>(x, val);
+    NC *nn = new NC(x, val);
     sz++;
     if (!max_node) {
       max_node = nn;
@@ -141,8 +105,47 @@ private:
     root = nn;
     return;
   }
+public:
+  RangeBST() : root(nullptr), max_node(nullptr), sz(0) {}
+  int size() { return sz; }
+  NC *rbegin() { return max_node; }
+  NC* lower_bound(i64 x) {
+    NC *ret = bound(x, true);
+    if (ret) ret->splay(), root = ret;
+    return ret;
+  }
+  NC* upper_bound(i64 x) {
+    NC *ret = bound(x, false);
+    if (ret) ret->splay(), root = ret;
+    return ret;
+  }
+  S get(i64 x) {
+    NC *ret = lower_bound(x);
+    if (!ret || ret->pt != x) return e();
+    return ret->v;
+  }
+  void set(i64 x, S val) { set(x, val, false); }
+  void add(i64 x, S val) { set(x, val, true); }
+  S prod(i64 xl, i64 xr) {
+    assert(xl <= xr);
+    if (!lower_bound(xl)) return e();
+    if (xr > max_node->pt) return op(root->v, root->get_rprod());
+    // now xl is root
+    NC *right = bound(xr, true);
+    NC *tmp = right;
+    S ret = e();
+    for (bool f = true; tmp != root;) {
+      if (f) ret = op(tmp->get_lprod(), ret);
+      f = tmp->state() == 1;
+      if (f) ret = op(tmp->p->v, ret);
+      tmp = tmp->p;
+    }
+    if (right) right->splay(), root = right;
+    return ret;
+  }
 };
 
+// verify: https://judge.yosupo.jp/submission/75434
 i64 op(i64 a, i64 b) { return a + b; }
 i64 e() { return 0; }
 void Main() {
