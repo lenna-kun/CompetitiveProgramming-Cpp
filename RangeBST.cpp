@@ -111,6 +111,7 @@ private:
     }
     nn->update();
     if (nn->l) nn->l->p = nn;
+    if (nn->r) nn->r->p = nn;
     root = nn;
     return;
   }
@@ -159,7 +160,7 @@ public:
   }
 };
 
-// verify: https://judge.yosupo.jp/submission/75441
+// verify: https://atcoder.jp/contests/abc231/submissions/28704043
 i64 op(i64 a, i64 b) { return a + b; }
 i64 e() { return 0; }
 void Main() {
