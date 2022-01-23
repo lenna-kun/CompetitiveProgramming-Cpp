@@ -61,7 +61,7 @@ template <class S, S (*op)(S, S), S (*e)()> struct Node {
 template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
 private:
   using NC = Node<S, op, e>;
-  NC *root, *max_node;
+  NC *root, *min_, *max_;
   NC *build(int li, int ri, const vector<pair<i64, S>> &v) {
     if (li >= ri) return nullptr;
     int mi = (li + ri) >> 1;
@@ -87,7 +87,7 @@ private:
   }
   void set(i64 x, S val, bool add) {
     NC *node = nullptr;
-    if (max_node && max_node->pt >= x) node = lower_bound(x);
+    if (root && min_->pt <= x && max_->pt >= x) node = lower_bound(x);
     if (node && node->pt == x) {
       if (add) node->v = op(node->v, val);
       else node->v = val;
@@ -95,14 +95,14 @@ private:
       return;
     }
     NC *nn = new NC(x, val);
-    if (!max_node) {
-      max_node = nn;
+    if (!root) {
+      min_ = nn, max_ = nn;
       root = nn;
       return;
     }
     if (!node) {
-      nn->l = root;
-      max_node = nn;
+      if (min_->pt > x) nn->r = root, min_ = nn;
+      else nn->l = root, max_ = nn;
     } else {
       // now node->pt > x
       nn->l = node->l; nn->r = node;
@@ -115,13 +115,12 @@ private:
     return;
   }
 public:
-  RangeBST() : root(nullptr), max_node(nullptr) {}
+  RangeBST() : root(nullptr), min_(nullptr), max_(nullptr) {}
   explicit RangeBST(const vector<pair<i64, S>> &v) : RangeBST() {
     root = build(0, v.size(), v);
-    max_node = root;
-    while (max_node->r) max_node = max_node->r;
+    for (max_ = root; max_->r;) max_ = max_->r;
+    for (min_ = root; min_->l;) min_ = min_->l;
   }
-  NC *rbegin() { return max_node; }
   NC* lower_bound(i64 x) {
     NC *ret = bound(x, true);
     if (ret) ret->splay(), root = ret;
@@ -141,9 +140,11 @@ public:
   void add(i64 x, S val) { set(x, val, true); }
   S prod(i64 xl, i64 xr) {
     assert(xl <= xr);
-    if (!lower_bound(xl)) return e();
-    if (xr > max_node->pt) return op(root->v, root->get_rprod());
-    // now xl is root
+    if (!root || xl > max_->pt || xr <= min_->pt) return e();
+    if (xl <= min_->pt && xr > max_->pt) return root->prod_st;
+    if (xl <= min_->pt) return lower_bound(xr)->get_lprod();
+    lower_bound(xl); // now xl is root
+    if (xr > max_->pt) return op(root->v, root->get_rprod());
     NC *right = bound(xr, true);
     NC *tmp = right;
     S ret = e();
