@@ -39,24 +39,15 @@ template <class T> struct Node {
       }
     }
   }
-  Node<T>* next() {
-    if (r) {
-      Node<T> *cur = r;
-      while (cur->l) cur = cur->l;
+  Node<T>* next(bool asc) {
+    if (asc ? r : l) {
+      Node<T> *cur = asc ? r : l;
+      if (asc) while (cur->l) cur = cur->l;
+      else while (cur->r) cur = cur->r;
       return cur;
     }
     Node<T> *cur = this;
-    while (cur->state() == 1) cur = cur->p;
-    return cur->p;
-  }
-  Node<T>* pre() {
-    if (l) {
-      Node<T> *cur = l;
-      while (cur->r) cur = cur->r;
-      return cur;
-    }
-    Node<T> *cur = this;
-    while (cur->state() == -1) cur = cur->p;
+    while (cur->state() == (asc ? 1 : -1)) cur = cur->p;
     return cur->p;
   }
 };
