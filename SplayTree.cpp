@@ -3,8 +3,8 @@ using namespace std;
 
 template <class T> struct Node {
   Node<T> *l, *r, *p;
-  T key;
-  Node(T key_) : l(nullptr), r(nullptr), p(nullptr), key(key_) {}
+  T k;
+  Node(T k_) : l(nullptr), r(nullptr), p(nullptr), k(k_) {}
   int state() {
     if (p && p->l == this) return -1;
     if (p && p->r == this) return 1;
@@ -62,89 +62,101 @@ template <class T> struct Node {
 };
 
 template <class T> struct SplayTree {
-  SplayTree() : root(nullptr), beg(nullptr), rbeg(nullptr), sz(0) {}
+private:
+  using NC = Node<T>;
+  NC *root, *min_, *max_;
+  int sz;
+  void splay(NC *node) { node->splay(), root = node; }
+  NC* bound(T k, bool lower) {
+    NC *valid = nullptr, *left = root, *right = nullptr;
+    while (left) {
+      valid = left;
+      if ((lower && !(k > left->k)) || (!lower && (k < left->k))) {
+        right = left;
+        left = left->l;
+      } else left = left->r;
+    }
+    if (!right && valid) splay(valid);
+    return right;
+  }
+public:
+  SplayTree() : root(nullptr), min_(nullptr), max_(nullptr), sz(0) {}
   int size() { return sz; }
-  Node<T> *begin() { return beg; }
-  Node<T> *rbegin() { return rbeg; }
-  Node<T>* end() { return nullptr; }
-  Node<T>* rend() { return nullptr; }
-  Node<T>* lower_bound(T k) { return bound(k, true); }
-  Node<T>* upper_bound(T k) { return bound(k, false); }
-  Node<T>* find(T k) {
-    Node<T> *ret = lower_bound(k);
-    if (!ret || ret->key != k) return nullptr;
+  Node<T> *begin() { return min_; }
+  Node<T> *rbegin() { return max_; }
+  NC* lower_bound(T k) {
+    NC *ret = bound(k, true);
+    if (ret) splay(ret);
     return ret;
   }
+  NC* upper_bound(T k) {
+    NC *ret = bound(k, false);
+    if (ret) splay(ret);
+    return ret;
+  }
+  Node<T>* entry(T k) {
+    lower_bound(k);
+    if (!root || root->k != k) return nullptr;
+    return root;
+  }
   pair<Node<T>*, bool> insert(T k) {
-    Node<T> *node = lower_bound(k);
-    if (node && node->key == k) return {node, false};
-    root = new Node<T>(k);
-    sz++;
-    if (!node) {
-      if (!rbeg) {
-        beg = root; rbeg = root;
-        return {root, true};
-      }
-      node = rbeg;
-      node->splay();
-      root->l = node;
+    NC *nn = new NC(k);
+    if (!root) { // if no nodes in tree
+      min_ = nn, max_ = nn, root = nn;
+    } else if (min_->k > k) { // if k become min k in tree
+      min_->l = nn, nn->p = min_, min_ = nn;
+      splay(nn);
+    } else if (max_->k < k) { // if k become max k in tree
+      max_->r = nn, nn->p = max_, max_ = nn;
+      splay(nn);
     } else {
-      // now node->key > k
-      root->l = node->l; root->r = node;
-      node->l = nullptr; node->p = root;
+      NC *node = bound(k, true); // assert node is not null
+      if (node->k == k) { // if tree already has k k
+        splay(node); delete nn; return {root, false};
+      }
+      // now node is first node whose k is larger than k
+      nn->l = node->l; node->l = nn;
+      nn->p = node; if (nn->l) nn->l->p = nn;
+      splay(nn);
     }
-    if (root->l) root->l->p = root;
-    if (beg->key > k) beg = root;
-    if (rbeg->key < k) rbeg = root;
-    return {root, true};
+    sz++; return {root, true};
   }
   void erase(Node<T> *node) {
-    node->splay();
-    if (beg->key == node->key) beg = node->next();
-    if (rbeg->key == node->key) rbeg = node->pre();
-    sz--;
-    // now root's key is equal to k
-    if (!node->l) {
-      root = node->r; delete node;
-    } else if (!node->r) {
-      root = node->l; delete node;
+    assert(node); splay(node); sz--;
+    if (!root->l) { // it means this node is min_
+      // if no nodes remain
+      if (!root->r) root = nullptr, min_ = nullptr, max_ = nullptr;
+      else {
+        root = root->r; root->p = nullptr;
+        for (min_ = root; min_->l; min_ = min_->l);
+        splay(min_);
+      }
+    } else if (!root->r) {
+      root = root->l; root->p = nullptr;
+      for (max_ = root; max_->r; max_ = max_->r);
+      splay(max_);
     } else {
-      Node<T> *nx = node->l;
-      nx->p = nullptr; // cut left tree
-      while (nx->r) nx = nx->r;
-      // now nx's key is maximum in root's left tree
-      // nx will be root
-      nx->splay();
-      root = nx;
-      // now nx doesn't have right child
-      nx->r = node->r;
-      delete node;
-      nx->r->p = nx;
+      root->l->p = nullptr; // cut left tree
+      NC *nx_root = root->l; // next root
+      for (;nx_root->r; nx_root = nx_root->r);
+      splay(nx_root);
+      // now nx_root doesn't have right child
+      nx_root->r = node->r; nx_root->r->p = nx_root;
+      root->p = nullptr;
     }
-    if (root) root->p = nullptr;
+    delete node;
   }
   bool erase(T k) {
-    if (!find(k)) return false;
+    if (!entry(k)) return false;
     erase(root);
     return true;
   }
-private:
-  Node<T> *root, *beg, *rbeg;
-  int sz;
-  Node<T>* bound(T k, bool lower) {
-    Node<T> *left = root, *right = nullptr;
-    while (left) {
-      if ((lower && !(k > left->key)) || (!lower && (k < left->key))) {
-        right = left;
-        left = left->l;
-      } else {
-        left = left->r;
-      }
-    }
-    if (right) {
-      right->splay();
-      root = right;
-    }
-    return right;
-  }
 };
+int main() {
+  SplayTree<int> set;
+  set.insert(30);
+  set.insert(41);
+  set.insert(51);
+  set.erase(41);
+  cout << set.lower_bound(30)->k << endl;
+}
