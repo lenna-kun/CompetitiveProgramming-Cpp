@@ -113,8 +113,8 @@ public:
   RangeBST() : root(nullptr), min_(nullptr), max_(nullptr) {}
   explicit RangeBST(const vector<pair<i64, S>> &v) : RangeBST() {
     root = build(0, v.size(), v);
-    for (max_ = root; max_->r;) max_ = max_->r;
-    for (min_ = root; min_->l;) min_ = min_->l;
+    for (max_ = root; max_->r; max_ = max_->r);
+    for (min_ = root; min_->l; min_ = min_->l);
   }
   NC* lower_bound(i64 x) {
     NC *ret = bound(x, true);
