@@ -62,6 +62,7 @@ template <class S, S (*op)(S, S), S (*e)()> struct RangeBST {
 private:
   using NC = Node<S, op, e>;
   NC *root, *min_, *max_;
+  void splay(NC *node) { node->splay(), root = node; }
   NC *build(int li, int ri, const vector<pair<i64, S>> &v) {
     if (li >= ri) return nullptr;
     int mi = (li + ri) >> 1;
@@ -74,46 +75,39 @@ private:
     return mid;
   }
   NC* bound(i64 x, bool lower) {
-    NC *left = root, *right = nullptr;
+    NC *valid = nullptr, *left = root, *right = nullptr;
     while (left) {
+      valid = left;
       if ((lower && !(x > left->pt)) || (!lower && (x < left->pt))) {
         right = left;
         left = left->l;
-      } else {
-        left = left->r;
-      }
+      } else left = left->r;
     }
+    if (!right && valid) splay(valid);
     return right;
   }
   void set(i64 x, S val, bool add) {
-    NC *node = nullptr;
-    if (root && min_->pt <= x && max_->pt >= x) node = lower_bound(x);
-    if (node && node->pt == x) {
+    NC *nn = new NC(x, val);
+    // if no nodes in tree
+    if (!root) {
+      min_ = nn, max_ = nn, root = nn; return;
+    } if (min_->pt > x) { // if x become min key in tree
+      min_->l = nn, nn->p = min_, min_ = nn;
+      splay(nn); return;
+    } if (max_->pt < x) { // if x become max key in tree
+      max_->r = nn, nn->p = max_, max_ = nn;
+      splay(nn); return;
+    }
+    NC *node = bound(x, true); // assert node is not null
+    if (node->pt == x) { // if tree already has key x
       if (add) node->v = op(node->v, val);
       else node->v = val;
-      node->update();
-      return;
+      node->update(); splay(node); delete nn; return;
     }
-    NC *nn = new NC(x, val);
-    if (!root) {
-      min_ = nn, max_ = nn;
-      root = nn;
-      return;
-    }
-    if (!node) {
-      if (min_->pt > x) nn->r = root, min_ = nn;
-      else nn->l = root, max_ = nn;
-    } else {
-      // now node->pt > x
-      nn->l = node->l; nn->r = node;
-      node->l = nullptr; node->p = nn;
-      node->update();
-    }
-    nn->update();
-    if (nn->l) nn->l->p = nn;
-    if (nn->r) nn->r->p = nn;
-    root = nn;
-    return;
+    // now node is first node whose key is larger than x
+    nn->l = node->l; node->l = nn;
+    nn->p = node; if (nn->l) nn->l->p = nn;
+    nn->update(); splay(nn);
   }
 public:
   RangeBST() : root(nullptr), min_(nullptr), max_(nullptr) {}
@@ -124,12 +118,12 @@ public:
   }
   NC* lower_bound(i64 x) {
     NC *ret = bound(x, true);
-    if (ret) ret->splay(), root = ret;
+    if (ret) splay(ret);
     return ret;
   }
   NC* upper_bound(i64 x) {
     NC *ret = bound(x, false);
-    if (ret) ret->splay(), root = ret;
+    if (ret) splay(ret);
     return ret;
   }
   S get(i64 x) {
@@ -155,34 +149,45 @@ public:
       if (f) ret = op(tmp->p->v, ret);
       tmp = tmp->p;
     }
-    if (right) right->splay(), root = right;
+    if (right) splay(right);
     return ret;
   }
 };
 
-// verify: https://atcoder.jp/contests/abc231/submissions/28704043
-i64 op(i64 a, i64 b) { return a + b; }
+// verify: https://atcoder.jp/contests/abc231/submissions/28770931
+ii64 op(i64 a, i64 b) { return a + b; }
 i64 e() { return 0; }
 void Main() {
-  int n, q;
-  cin >> n >> q;
-  vector<pair<i64, i64>> a(n);
-  rep (n) a[i].first = i, cin >> a[i].second;
-  RangeBST<i64, op, e> rbst(a);
-  rep (q) {
-    int t;
-    cin >> t;
-    if (t == 0) {
-      i64 p, x;
-      cin >> p >> x;
-      rbst.add(p, x);
-    } else {
-      i64 l, r;
-      cin >> l >> r;
-      cout << rbst.prod(l, r) << endl;
-    }
+  int n;
+  cin >> n;
+  vector<pair<i64, i64>> present(n);
+  rep (n) {
+    i64 a;
+    cin >> a;
+    present[i].first = a;
   }
+  rep (n) {
+    i64 b;
+    cin >> b;
+    present[i].second = -b;
+  }
+  sort(all(present));
+  vector<pair<pair<i64, i64>, int>> presents;
+  rep (n) {
+    if (i == 0 || present[i] != present[i-1])
+      presents.push_back({present[i], 1});
+    else
+      presents.back().second++;
+  }
+  RangeBST<i64, op, e> rbst;
+  i64 ans = 0;
+  for (pair<pair<i64, i64>, int> &e: presents) {
+    ans += (rbst.prod(-e.first.second, inf) + e.second) * e.second;
+    rbst.add(-e.first.second, e.second);
+  }
+  cout << ans << endl;
 }
+ 
 int main() {
   cin.tie(0);
   ios::sync_with_stdio(false);
