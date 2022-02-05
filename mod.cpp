@@ -26,25 +26,12 @@ template <class T> bool chmax(T& a, T b){ if(a < b){ a = b; return 1; } return 0
 struct Edge { int to; i64 cost; Edge(int to, i64 cost) : to(to), cost(cost) {} };
 using Graph = vector<vector<Edge>>;
 
-i64 modpow(i64 a, i64 b, i64 m) {
-	i64 p = 1, q = a;
-	for (int i = 0; i < 63; i++) {
-		if ((b & (1LL << i)) != 0) {
-			p *= q;
-			p %= m;
-		}
-		q *= q;
-		q %= m;
-	}
-	return p;
-}
-
 pair<vector<i64>, vector<i64>> init(i64 n, i64 m) {
   vector<i64> fact(n+1, 1), rfact(n+1, 1);
   i64 r = 1;
   rep (i, 1, n+1)
     fact.at(i) = r = (r * i) % m;
-  rfact.at(n) = r = modpow(fact.at(n), m-2, m);
+  rfact.at(n) = r = pow_mod(fact.at(n), m-2, m);
   rrep (i, 1, n+1)
     rfact.at(i-1) = r = (r * i) % m;
   return make_pair(fact, rfact);
@@ -63,4 +50,54 @@ i64 comb(pair<vector<i64>, vector<i64>> &data, i64 n, i64 k, i64 m) {
 // nHk (mod MOD)
 i64 homb(pair<vector<i64>, vector<i64>> &data, i64 n, i64 k, i64 m) {
   return comb(data, n+k-1, k, m);
+}
+
+// 素因数分解
+vector<pair<i64, int>> prime_division(i64 n) { // O(rt(n))
+  vector<pair<i64, int>> ret;
+  int x = n, cnt;
+  for (int i=2; i*i<=n; i++) {
+    cnt = 0;
+    while (x%i == 0) {
+      x /= i;
+      cnt++;
+    }
+    if (cnt) ret.push_back({i, cnt});
+  }
+  if (x != 1) ret.push_back({x, 1});
+  return move(ret);
+}
+
+i64 power_tower(vector<i64> &exps, i64 mod) {
+  vector<i64> mods = {mod};
+  rep (exps.size()-1) {
+    vector<pair<i64, int>> pds = prime_division(mods.back());
+    i64 phi = 1;
+    for (pair<i64, int> &pd: pds)
+      phi *= (pd.first-1) * pow(pd.first, pd.second-1);
+    mods.push_back(phi);
+  }
+
+  i64 ret = 1;
+  rrep (exps.size()) {
+    i64 m = mods.back(); mods.pop_back();
+    if (ret < 10) {
+      i64 tmp = pow(exps[i], ret);
+      if (tmp < 64) ret = tmp;
+      else ret = 64 + (tmp - 64) % m;
+    } else if (exps[i] == 0) {
+      ret = 0;
+    } else {
+      ret = pow_mod(exps[i], ret, m) + 64 * m;
+    }
+  }
+  return ret % mod;
+}
+
+int main() {
+  int n, m;
+  cin >> n >> m;
+  vector<i64> a(n);
+  for (i64 &e: a) cin >> e;
+  cout << power_tower(a, m) << endl;
 }
