@@ -68,15 +68,29 @@ vector<pair<i64, int>> prime_division(i64 n) { // O(rt(n))
   return move(ret);
 }
 
+i64 euler_phi(i64 n) {
+  i64 phi = n;
+  for (int i=2; i*i<=n; i++) {
+    if (n%i == 0) {
+      phi -= phi/i;
+      while (n%i == 0) n /= i;
+    }
+  }
+  if (n > 1) phi -= phi/n;
+  return phi;
+}
+
+i64 euler_phi2(i64 n) {
+  vector<pair<i64, int>> pds = prime_division(n);
+  i64 phi = 1;
+  for (pair<i64, int> &pd: pds)
+    phi *= (pd.first-1) * pow(pd.first, pd.second-1);
+  return phi;
+}
+
 i64 power_tower(vector<i64> &exps, i64 mod) {
   vector<i64> mods = {mod};
-  rep (exps.size()-1) {
-    vector<pair<i64, int>> pds = prime_division(mods.back());
-    i64 phi = 1;
-    for (pair<i64, int> &pd: pds)
-      phi *= (pd.first-1) * pow(pd.first, pd.second-1);
-    mods.push_back(phi);
-  }
+  rep (exps.size()-1) mods.push_back(euler_phi(mods.back()));
 
   i64 ret = 1;
   rrep (exps.size()) {
