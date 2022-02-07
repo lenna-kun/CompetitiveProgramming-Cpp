@@ -34,7 +34,7 @@ public:
 
   // F1~F5: lambda関数
   template<typename F1, typename F2, typename F3, typename F4, typename F5>
-  vector<S> execute(F1 &&add_l, F2 &&add_r, F3 &&del_l, F4 &&del_r, F5 solve) {
+  vector<S> execute(F1 &&add_l, F2 &&add_r, F3 &&del_l, F4 &&del_r, F5 &&solve) {
     vector<int> qi(q);
     iota(all(qi), 0);
     vector<i64> eval(q);
