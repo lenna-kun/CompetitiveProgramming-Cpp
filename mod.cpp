@@ -52,6 +52,36 @@ i64 homb(pair<vector<i64>, vector<i64>> &data, i64 n, i64 k, i64 m) {
   return comb(data, n+k-1, k, m);
 }
 
+struct Osa_k {
+private:
+  vector<int> min_factor;
+public:
+  Osa_k(int n){
+    //素数候補を管理する配列
+    min_factor = vector<int>(n+1);
+    //2以上の数を一度素数候補に入れる
+    rep (n+1) min_factor[i] = i;
+    //それぞれの数について最小の素因数を求める
+    for (int i=2; i*i <= n; i++){
+      if (min_factor[i] != i) continue;
+      for(int j=2; i*j <= n; j++)
+        if(min_factor[i*j] > i) min_factor[i*j] = i;
+    }
+  }
+
+  vector<pair<int, int>> prime_division(i64 n) { // O(log n)
+    vector<pair<int, int>> ret;
+    while (n > 1) {
+      if (!ret.empty() && min_factor[n] == ret.back().first)
+        ret.back().second++;
+      else
+        ret.push_back({min_factor[n], 1});
+      n /= min_factor[n];
+    }
+    return ret;
+  }
+};
+
 // 素因数分解
 vector<pair<i64, int>> prime_division(i64 n) { // O(rt(n))
   vector<pair<i64, int>> ret;
