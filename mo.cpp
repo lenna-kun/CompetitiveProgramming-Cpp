@@ -6,14 +6,14 @@ using namespace std;
 
 constexpr int maxn = 1 << 20;
 i64 hilbertorder(int x, int y) {
-  i64 d = 0;
-  for (int s=maxn/2; s; s>>=1) {
-    bool rx = x & s, ry = y & s;
-    d = d << 2 | rx * 3 ^ static_cast<int>(ry);
+  i64 rx, ry, d = 0;
+  for (i64 s=maxn>>1; s; s>>=1) {
+    rx = (x & s)>0, ry = (y & s)>0;
+    d += s * s * ((rx * 3) ^ ry);
     if (ry) continue;
     if (rx) {
-      x = maxn - x;
-      y = maxn - y;
+      x = maxn-1 - x;
+      y = maxn-1 - y;
     }
     swap(x, y);
   }
