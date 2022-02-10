@@ -28,24 +28,33 @@ struct Edge { int to; i64 cost; Edge(int to, i64 cost) : to(to), cost(cost) {} }
 using Graph = vector<vector<Edge>>;
 
 // O(E log V)
-vector<i64> dijkstra(i64 s, i64 n, Graph g) { // (始点, ノード数, グラフ情報) g: [[(to, cost), ...], ...]
-  vector<i64> d(inf, n);
+pair<vector<i64>, vector<int>> dijkstra(int s, i64 n, Graph &g) {
+  vector<int> prev(n, -1);
+  vector<i64> d(n, inf);
   d[s] = 0;
-  priority_queue<pair<i64, i64>, vector<pair<i64, i64>>, greater<pair<i64, i64>>> que;
+  priority_queue<pair<i64, int>, vector<pair<i64, int>>, greater<pair<i64, int>>> que;
   que.push({0, s});
   while (!que.empty()) {
-    pair<i64, i64> p = que.top();
-    que.pop();
-    i64 v = p.second;
+    pair<i64, i64> p = que.top();que.pop();
+    int v = p.second;
     if (d[v] < p.first) continue;
     for (Edge &e: g[v]) {
       if (d[e.to] > d[v] + e.cost) {
         d[e.to] = d[v] + e.cost;
+        prev[e.to] = v;
         que.push({d[e.to], e.to});
       }
     }
   }
-  return d;
+  return {d, prev};
+}
+
+// 経路復元
+vector<pair<int, int>> get_path(int t, vector<int> &prev) {
+  vector<pair<int, int>> path;
+  for (; prev[t] != -1; t = prev[t]) path.push_back({prev[t], t});
+  reverse(all(path));
+  return move(path);
 }
 
 // # O(EV)

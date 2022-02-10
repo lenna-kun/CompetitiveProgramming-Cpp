@@ -1,7 +1,5 @@
 #include <bits/stdc++.h>
-#include <atcoder/all>
 using namespace std;
-using namespace atcoder;
 #define i64 int64_t
 #define endl "\n"
 #define all(a) a.begin(),a.end()
@@ -11,23 +9,52 @@ using namespace atcoder;
 template <class S, S (*op)(S, S), S (*e)()> class RangeTree {
 private:
   int n;
+  vector<i64> pts;
+  vector<S> d;
+public:
+  void add_point(i64 x) { pts.emplace_back(x); }
+  void build() {
+    sort(all(pts));
+    pts.erase(unique(all(pts)), pts.end());
+    n = pts.size();
+    d.resize(2*n);
+    rep (n) d[n+i] = e();
+    rrep (i, 1, n) d[i] = op(d[2*i], d[2*i+1]);
+  }
+  // 座標x,yに値valを置く
+  void set(i64 x, S val) {
+    int i = lower_bound(all(pts), x) - pts.begin();
+    assert(i < n and pts[i] == x);
+    d[i+n] = val;
+    for (i>>=1; i; i>>=1) d[i] = op(d[2*i], d[2*i+1]);
+  }
+  // 座標x,yに値valを重ねて置く
+  void add(i64 x, S val) {
+    int i = lower_bound(all(pts), x) - pts.begin();
+    assert(i < n and pts[i] == x);
+    for (i+=n; i; i>>=1) d[i] = op(d[i], val);
+  }
+  // [xl, xr)
+  S prod(i64 xl, i64 xr) {
+    int l = n + (lower_bound(all(pts), xl) - pts.begin());
+    int r = n + (lower_bound(all(pts), xr) - pts.begin());
+    S ret = e();
+    while (l < r) {
+      if (l & 1) ret = op(ret, d[l++]);
+      if (r & 1) ret = op(ret, d[--r]);
+      l >>= 1, r >>= 1;
+    }
+    return ret;
+  }
+  S get(i64 x) { return prod(x, x+1); }
+};
+
+template <class S, S (*op)(S, S), S (*e)()> class RangeTree2d {
+private:
+  int n;
   using pt = pair<i64, i64>;
   vector<pt> pts;
-  vector<vector<i64>> d;
-  vector<segtree<S, op, e>> segtrees;
-  void set(int v, i64 y, S val) {
-    segtrees[v].set(lower_bound(all(d[v]), y) - d[v].begin(), val);
-  }
-  void add(int v, i64 y, S val) {
-    int i = lower_bound(all(d[v]), y) - d[v].begin();
-    segtrees[v].set(i, op(segtrees[v].get(i), val));
-  }
-  S prod(int v, i64 yl, i64 yr) {
-    return segtrees[v].prod(
-      lower_bound(all(d[v]), yl) - d[v].begin(),
-      lower_bound(all(d[v]), yr) - d[v].begin()
-    );
-  }
+  vector<RangeTree<S, op, e>> rts;
 
 public:
   void add_point(i64 x, i64 y) { pts.emplace_back(x, y); }
@@ -35,27 +62,31 @@ public:
     sort(all(pts));
     pts.erase(unique(all(pts)), pts.end());
     n = pts.size();
-    d.resize(2*n);
-    rep (n) d[n+i] = {pts[i].second};
+    rts.resize(2*n);
+    vector<vector<i64>> d(2*n);
+    rep (n) {
+      d[n+i] = {pts[i].second};
+      rts[n+i].add_point(pts[i].second);
+    }
     rrep (i, 1, n) {
       auto &lch = d[i*2];
       auto &rch = d[i*2+1];
       merge(all(lch), all(rch), back_inserter(d[i]));
-      d[i].erase(unique(all(d[i])), d[i].end());
+      for (i64 &y: d[i]) rts[i].add_point(y);
     }
-    for (auto &v: d) segtrees.emplace_back(v.size());
+    for (RangeTree<S, op, e> &rt: rts) rt.build();
   }
   // 座標x,yに値valを置く
   void set(i64 x, i64 y, S val) {
     int i = lower_bound(all(pts), pt{x, y}) - pts.begin();
     assert(i < n and pts[i] == make_pair(x, y));
-    for (i+=n; i; i>>=1) set(i, y, val);
+    for (i+=n; i; i>>=1) rts[i].set(y, val);
   }
   // 座標x,yに値valを重ねて置く
   void add(i64 x, i64 y, S val) {
     int i = lower_bound(all(pts), pt{x, y}) - pts.begin();
     assert(i < n and pts[i] == make_pair(x, y));
-    for (i+=n; i; i>>=1) add(i, y, val);
+    for (i+=n; i; i>>=1) rts[i].add(y, val);
   }
   // [xl, xr), [yl, yr)
   S prod(i64 xl, i64 yl, i64 xr, i64 yr) {
@@ -64,8 +95,8 @@ public:
     int r = n + (lower_bound(all(pts), pt{xr, 0}, cmp) - pts.begin());
     S ret = e();
     while (l < r) {
-      if (l & 1) ret = op(ret, prod(l++, yl, yr));
-      if (r & 1) ret = op(ret, prod(--r, yl, yr));
+      if (l & 1) ret = op(ret, rts[l++].prod(yl, yr));
+      if (r & 1) ret = op(ret, rts[--r].prod(yl, yr));
       l >>= 1, r >>= 1;
     }
     return ret;
@@ -81,7 +112,7 @@ void Main() {
   int n, q;
   cin >> n >> q;
   vector<vector<i64>> query;
-  RangeTree<i64, op, e> rt2d;
+  RangeTree2d<i64, op, e> rt2d;
   rep (n) {
     i64 x, y, w;
     cin >> x >> y >> w;

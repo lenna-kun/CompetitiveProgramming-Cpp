@@ -1,3 +1,4 @@
+// dp[v]=op2(merge(op1(dp[c1],c1),op1(dp[c2],c2),...,op1(dp[ck],ck)),v)    (ci∈ch(v))
 template <class S, S (*op)(S, int), S (*merge)(S, S), S (*op2)(S, int), S (*e)()>
 struct re_rooting {
 public:
